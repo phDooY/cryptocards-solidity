@@ -2,12 +2,15 @@
 
 1. Install `truffle`.
 2. Run `git clone https://github.com/phDooY/cryptocards-solidity && cd cryptocards-solidity`
-2. Run `truffle develop`.
-3. Inside the console, run `compile` to compile the contracts.
-4. Run `migrate` to deploy the contracts to the truffle blockchain.
+3. Run `truffle develop`.
+
+   Alternatively, run `ganache-cli` and use `truffle console --network develop` to open the console.
+   The `develop` network is preconfigured to use the default host and port used by Ganache.
+4. Inside the console, run `compile` to compile the contracts.
+5. Run `migrate` to deploy the contracts to the truffle blockchain.
 
    Note: It is highly recommended to use `migrate --reset` instead of just `migrate` after making changes to the contracts.
-5. Use the cheatsheet below to interact with the contracts.
+6. Use the cheatsheet below to interact with the contracts.
 
 # Truffle console cheatsheet
 
