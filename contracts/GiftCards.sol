@@ -137,7 +137,7 @@ contract GiftCards {
     //@dev assumed to be receiving ether wei
     function _swapEtherToDai(uint value) internal returns(uint amountDAI, uint conversionRate) {
         uint minRate;
-        (, minRate) = kyberNetworkProxyContract.getExpectedRate(address(0), daiToken, value);
+        (, minRate) = kyberNetworkProxyContract.getExpectedRate(address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE), daiToken, value);
         //will send back tokens to this contract's address
         uint destAmount = kyberNetworkProxyContract.swapEtherToToken.value(value)(daiToken, minRate);
         // Send received tokens to the contract
