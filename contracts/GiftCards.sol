@@ -1,21 +1,35 @@
 pragma solidity >0.5.6;
 // pragma experimental ABIEncoderV2;
 
-contract GiftCards {
+// import "./IERC20.sol";
+// import "./KyberNetworkProxy.sol";
 
+interface DaiToken {
+    function transfer(address dst, uint wad) external returns (bool);
+    function balanceOf(address guy) external view returns (uint);
+}
+
+interface KyberNetworkProxy {
+    function getExpectedRate(address tokenAddress, DaiToken daiToken, uint amount) external view returns(uint expectedRate, uint slippageRate);
+    function swapEtherToToken(DaiToken token, uint minConversionRate) external payable returns(uint);
+}
+
+contract GiftCards {
     // --- Administration ---
     address payable public owner;
-    address public DAI;
+    address public daiAddress;
     mapping(address => bool) isMaintainer;
     uint256 private _gasStationBalance;
     uint256 public activationGasPrice = 100000;
     uint8 public trials = 5;
 
-    constructor(address payable _owner, address _DAI) public {
+    KyberNetworkProxy public kyberNetworkProxyContract;
+    DaiToken public daiToken;
+
+    constructor(address payable _owner, address _daiAddress, address _kyberNetworkProxyAddress) public {
         owner = _owner;
-        DAI = _DAI;
-        // TODO initialize token from DAI address
-        // DAI = DAI(_DAI);
+        kyberNetworkProxyContract = KyberNetworkProxy(_kyberNetworkProxyAddress);
+        daiToken = DaiToken(_daiAddress);
     }
 
     modifier onlyOwner() {
@@ -44,8 +58,9 @@ contract GiftCards {
         activationGasPrice = newValue;
     }
 
+    // TODO fix this
     function setDAIContract(address newAddress) public onlyOwner {
-        DAI = newAddress;
+        daiAddress = newAddress;
         // TODO initialize token from address
     }
 
@@ -93,11 +108,9 @@ contract GiftCards {
         uint256 actualValue = msg.value * 99 / 100 - activationGasPrice * trials;
         // uint256 actualValue = msg.value - msg.value / 100 - activationGasPrice * trials;
 
-        // TODO call function that swaps Ethereum to DAI
-
-        // uint256 result = DAI.swap(actualValue);
-        // cards[_linkHash].amountDAI = result;
-        // cards[_linkHash].conversionRate = DAI.getConversionRate();
+        // Call function that swaps Ethereum to DAI
+        // (cards[_linkHash].amountDAI, cards[_linkHash].conversionRate) = _swapEtherToDai.value(actualValue)();
+        (cards[_linkHash].amountDAI, cards[_linkHash].conversionRate) = _swapEtherToDai(actualValue);
 
         cards[_linkHash].amountWei = msg.value;
         cards[_linkHash].buyer = msg.sender;
@@ -117,6 +130,19 @@ contract GiftCards {
     function returnToBuyer(string memory linkHash) public returns (bool) {
         require(cards[linkHash].buyer == msg.sender, "You may not ??");
         return true;
+    }
+
+    // --- 3rd party integrations ---
+
+    //@dev assumed to be receiving ether wei
+    function _swapEtherToDai(uint value) internal returns(uint amountDAI, uint conversionRate) {
+        uint minRate;
+        (, minRate) = kyberNetworkProxyContract.getExpectedRate(address(0), daiToken, value);
+        //will send back tokens to this contract's address
+        uint destAmount = kyberNetworkProxyContract.swapEtherToToken.value(value)(daiToken, minRate);
+        // Send received tokens to the contract
+        require(daiToken.transfer(address(this), destAmount));
+        return (destAmount, minRate);
     }
 
 }
