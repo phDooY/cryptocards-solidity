@@ -1,5 +1,6 @@
 pragma solidity >0.5.6;
-// pragma experimental ABIEncoderV2;
+// TODO change from public mapping to getter
+pragma experimental ABIEncoderV2;
 
 // import "./IERC20.sol";
 // import "./KyberNetworkProxy.sol";
@@ -7,21 +8,27 @@ pragma solidity >0.5.6;
 interface DaiToken {
     function transfer(address dst, uint wad) external returns (bool);
     function balanceOf(address guy) external view returns (uint);
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+    function approve(address spender, uint256 value) external returns (bool);
 }
 
 interface KyberNetworkProxy {
-    function getExpectedRate(address tokenAddress, DaiToken daiToken, uint amount) external view returns(uint expectedRate, uint slippageRate);
+    function getExpectedRate(address tokenAddress, address daiToken, uint amount) external view returns(uint expectedRate, uint slippageRate);
     function swapEtherToToken(DaiToken token, uint minConversionRate) external payable returns(uint);
+    function swapTokenToEther(DaiToken token, uint srcAmount, uint minConversionRate) external returns(uint);
 }
 
 contract GiftCards {
+    // --- Constants ---
+    address constant ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    uint256 public activationGasPrice = 100000;
+    uint8 public trials = 5;
     // --- Administration ---
     address payable public owner;
     address public daiAddress;
     mapping(address => bool) isMaintainer;
     uint256 private _gasStationBalance;
-    uint256 public activationGasPrice = 100000;
-    uint8 public trials = 5;
 
     KyberNetworkProxy public kyberNetworkProxyContract;
     DaiToken public daiToken;
@@ -64,16 +71,28 @@ contract GiftCards {
         // TODO initialize token from address
     }
 
+    // --- Events ---
+    // TODO
+    event CardCreation(string linkHash);
+
     // --- Cards ---
     // TODO available time to activateCard
 
     // enum CardStatus { NULL, CREATED, ACTIVATED, REVERTED, RETURNED }
 
+    // TODO think how to split variables into structs
+    struct Rates {
+        uint256 buyConversionRate;
+        uint256 sellConversionRate;
+    }
+
     struct Card {
-        uint256 amountWei;
+        uint256 initialAmountWei;
+        uint256 buyAmountWei;
+        uint256 sellAmountWei;
         uint256 amountDAI;
         uint256 nominalAmount; // needed?
-        uint256 conversionRate; // needed?
+        Rates rates;
         address buyer;
         string recipientName; // define size
         address recipientAddress; // needed?
@@ -94,6 +113,13 @@ contract GiftCards {
         return true;
     }
 
+    function cardIsActivated(string memory _linkHash) public view returns(bool) {
+        if (cards[_linkHash].recipientAddress == address(0)) {
+            return false;
+        }
+        return true;
+    }
+
     function createCard(string memory _linkHash,
                         string memory _recipientName,
                         string memory _securityCodeHash)
@@ -109,21 +135,43 @@ contract GiftCards {
         // uint256 actualValue = msg.value - msg.value / 100 - activationGasPrice * trials;
 
         // Call function that swaps Ethereum to DAI
-        // (cards[_linkHash].amountDAI, cards[_linkHash].conversionRate) = _swapEtherToDai.value(actualValue)();
-        (cards[_linkHash].amountDAI, cards[_linkHash].conversionRate) = _swapEtherToDai(actualValue);
+        // (cards[_linkHash].amountDAI, cards[_linkHash].buyConversionRate) = _swapEtherToDai.value(actualValue)();
+        (cards[_linkHash].amountDAI, cards[_linkHash].rates.buyConversionRate) = _swapEtherToDai(actualValue);
 
-        cards[_linkHash].amountWei = msg.value;
+        cards[_linkHash].buyAmountWei = actualValue;
+        cards[_linkHash].initialAmountWei = msg.value;
         cards[_linkHash].buyer = msg.sender;
         cards[_linkHash].linkHash = _linkHash;
         cards[_linkHash].securityCodeHash = _securityCodeHash;
         cards[_linkHash].trialsRemaining = trials;
+        cards[_linkHash].recipientName = _recipientName;
+
+        // TODO
+        emit CardCreation(_linkHash);
 
         return true;
     }
 
     // TODO try to estimate and fix the gas cost of calling this function
     // cost should be a global variable
-    function activateCard() public returns(bool) {
+    function activateCard(string memory _linkHash, string memory _securityCodeHash, address payable _recipientAddress) public returns(bool) {
+        require(cardExists(_linkHash), "This card does not exist");
+        require(!cardIsActivated(_linkHash), "This card has already been activated");
+
+        if (isMaintainer[msg.sender]) {
+            require(cards[_linkHash].trialsRemaining != 0, "Out of trials");
+            cards[_linkHash].trialsRemaining--;
+        }
+
+        require(keccak256(abi.encodePacked(_securityCodeHash)) == keccak256(abi.encodePacked(cards[_linkHash].securityCodeHash)), "Security code is invalid");
+
+        (cards[_linkHash].sellAmountWei, cards[_linkHash].rates.sellConversionRate) = _swapDaiToEther(cards[_linkHash].amountDAI, _recipientAddress);
+
+        // Send ether from contract to recipient
+        // _recipientAddress.transfer(cards[_linkHash].sellAmountWei);
+
+        cards[_linkHash].recipientAddress = _recipientAddress;
+
         return true;
     }
 
@@ -133,16 +181,52 @@ contract GiftCards {
     }
 
     // --- 3rd party integrations ---
+    // Wrapper
+    // function getExpectedRate(bool toDai, uint value) public view returns(uint) {
+    //     uint minRate;
+    //     if (toDai) {
+    //         (, minRate) = kyberNetworkProxyContract.getExpectedRate(ETH_TOKEN_ADDRESS, address(daiToken), value);
+    //     }
+    //     else {
+    //         (, minRate) = kyberNetworkProxyContract.getExpectedRate(address(daiToken), ETH_TOKEN_ADDRESS, value);
+    //     }
+    //     return minRate;
+    // }
 
     //@dev assumed to be receiving ether wei
     function _swapEtherToDai(uint value) internal returns(uint amountDAI, uint conversionRate) {
+        // uint minRate = getExpectedRate(true, value);
+
         uint minRate;
-        (, minRate) = kyberNetworkProxyContract.getExpectedRate(address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE), daiToken, value);
+        (, minRate) = kyberNetworkProxyContract.getExpectedRate(ETH_TOKEN_ADDRESS, address(daiToken), value);
         //will send back tokens to this contract's address
         uint destAmount = kyberNetworkProxyContract.swapEtherToToken.value(value)(daiToken, minRate);
         // Send received tokens to the contract
         require(daiToken.transfer(address(this), destAmount));
         return (destAmount, minRate);
+    }
+
+    // @param tokenQty token wei amount
+    // @param destAddress address to send swapped ETH to
+    function _swapDaiToEther(uint tokenQty, address payable destAddress) internal returns(uint amountWei, uint conversionRate) {
+        // uint minRate = getExpectedRate(false, tokenQty);
+
+        uint minRate;
+        (, minRate) = kyberNetworkProxyContract.getExpectedRate(address(daiToken), ETH_TOKEN_ADDRESS, tokenQty);
+        // Check that the token transferFrom has succeeded
+        // require(daiToken.transferFrom(address(this), this, tokenQty));
+        // Mitigate ERC20 Approve front-running attack, by initially setting
+        // allowance to 0
+        require(daiToken.approve(address(kyberNetworkProxyContract), 0));
+        // Approve tokens so network can take them during the swap
+        daiToken.approve(address(kyberNetworkProxyContract), tokenQty);
+        // TODO this fails
+        uint destAmount = kyberNetworkProxyContract.swapTokenToEther(daiToken, tokenQty, minRate);
+        // TODO this fails
+        // Send received ethers to destination address
+        require(destAddress.send(destAmount));
+        // destAddress.transfer(destAmount);
+        return(destAmount, minRate);
     }
 
 }
