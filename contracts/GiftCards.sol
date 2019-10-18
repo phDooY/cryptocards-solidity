@@ -209,24 +209,29 @@ contract GiftCards {
     // @param tokenQty token wei amount
     // @param destAddress address to send swapped ETH to
     function _swapDaiToEther(uint tokenQty, address payable destAddress) internal returns(uint amountWei, uint conversionRate) {
+
         // uint minRate = getExpectedRate(false, tokenQty);
 
         uint minRate;
         (, minRate) = kyberNetworkProxyContract.getExpectedRate(address(daiToken), ETH_TOKEN_ADDRESS, tokenQty);
-        // Check that the token transferFrom has succeeded
-        // require(daiToken.transferFrom(address(this), this, tokenQty));
+
         // Mitigate ERC20 Approve front-running attack, by initially setting
         // allowance to 0
         require(daiToken.approve(address(kyberNetworkProxyContract), 0));
+
         // Approve tokens so network can take them during the swap
+        require(daiToken.balanceOf(address(this)) >= tokenQty, "Trying to send too much of DAI");
         daiToken.approve(address(kyberNetworkProxyContract), tokenQty);
-        // TODO this fails
         uint destAmount = kyberNetworkProxyContract.swapTokenToEther(daiToken, tokenQty, minRate);
-        // TODO this fails
+
         // Send received ethers to destination address
         require(destAddress.send(destAmount));
+
         // destAddress.transfer(destAmount);
         return(destAmount, minRate);
+    }
+
+    function() payable external {
     }
 
 }

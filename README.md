@@ -25,9 +25,17 @@ Example calls:
 
 ```javascript
 // Call a function. Caller is account 0 by default.
-await c.addMaintainer(a[1]);
+await c.addMaintainer(a[0])
 // Call payable function from account 3. Value is in wei.
-await c.createCard("some hash", "eleni", "security code hash", {from: a[3], value: 500000});
+await c.createCard("some hash", "eleni", "security code hash", {from: a[0], value: 200000000000000000})
 // Get card data
-await c.cards("some hash")
+d = await c.cards("some hash")
+// Activate card
+await c.activateCard("some hash", "security code hash", '0x90F63E26982DF91Af836FA3339791a2b2A3452F8')
 ```
+
+
+# Useful resources
+
+Exchange wrappers:
+https://github.com/DecenterApps/cdpsaver-contracts/tree/9fdc6b2fc100a1b5df676840f8e2d748354f23bc/contracts/exchange/wrappers
