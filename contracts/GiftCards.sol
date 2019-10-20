@@ -21,29 +21,33 @@ interface KyberNetworkProxy {
 contract GiftCards {
     // --- Constants ---
     address constant ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     uint256 public activationGasPrice = 100000;
     uint8 public trials = 5;
+
     // --- Administration ---
     address payable public owner;
     address public daiAddress;
     mapping(address => bool) isMaintainer;
     uint256 private _gasStationBalance;
 
+    // --- Proxies ---
     KyberNetworkProxy public kyberNetworkProxyContract;
     DaiToken public daiToken;
 
+    // --- Contract constructor ---
     constructor(address payable _owner, address _daiAddress, address _kyberNetworkProxyAddress) public {
         owner = _owner;
         kyberNetworkProxyContract = KyberNetworkProxy(_kyberNetworkProxyAddress);
         daiToken = DaiToken(_daiAddress);
     }
 
+    // --- Modifyers ---
     modifier onlyOwner() {
         require(msg.sender == owner);
         _;
     }
 
+    // --- Helper functions ---
     function addMaintainer(address _address) public onlyOwner {
         isMaintainer[_address] = true;
     }
@@ -75,11 +79,10 @@ contract GiftCards {
     // TODO
     event CardCreation(string linkHash);
 
-    // --- Cards ---
+    // --- Structs ---
     // TODO available time to activateCard
-
+    // TODO do we need enum?
     // enum CardStatus { NULL, CREATED, ACTIVATED, REVERTED, RETURNED }
-
     // TODO think how to split variables into structs
     struct Rates {
         uint256 buyConversionRate;
@@ -102,7 +105,7 @@ contract GiftCards {
         // CardStatus status;
     }
 
-    // TODO performance with a lot of cards?
+    // TODO anaylse performance with a lot of cards?
     mapping(string => Card) public cards;
 
     function cardExists(string memory _linkHash) public view returns(bool) {
@@ -127,15 +130,12 @@ contract GiftCards {
                         public returns(bool) {
 
         require(!cardExists(_linkHash), "The card already exists");
-        // TODO find out requirements for msg.value vs nominalAmount
-        // require(???)
 
         // TODO check gas cost
         uint256 actualValue = msg.value * 99 / 100 - activationGasPrice * trials;
         // uint256 actualValue = msg.value - msg.value / 100 - activationGasPrice * trials;
 
         // Call function that swaps Ethereum to DAI
-        // (cards[_linkHash].amountDAI, cards[_linkHash].buyConversionRate) = _swapEtherToDai.value(actualValue)();
         (cards[_linkHash].amountDAI, cards[_linkHash].rates.buyConversionRate) = _swapEtherToDai(actualValue);
 
         cards[_linkHash].buyAmountWei = actualValue;
@@ -146,7 +146,7 @@ contract GiftCards {
         cards[_linkHash].trialsRemaining = trials;
         cards[_linkHash].recipientName = _recipientName;
 
-        // TODO
+        // TODO define events' data
         emit CardCreation(_linkHash);
 
         return true;
@@ -167,16 +167,21 @@ contract GiftCards {
 
         (cards[_linkHash].sellAmountWei, cards[_linkHash].rates.sellConversionRate) = _swapDaiToEther(cards[_linkHash].amountDAI, _recipientAddress);
 
-        // Send ether from contract to recipient
-        // _recipientAddress.transfer(cards[_linkHash].sellAmountWei);
-
         cards[_linkHash].recipientAddress = _recipientAddress;
 
         return true;
     }
 
-    function returnToBuyer(string memory linkHash) public returns (bool) {
-        require(cards[linkHash].buyer == msg.sender, "You may not ??");
+    function returnToBuyer(string memory _linkHash) public returns (bool) {
+        require(cardExists(_linkHash), "This card does not exist");
+        require(!cardIsActivated(_linkHash), "This card has already been activated");
+        require(cards[_linkHash].buyer == msg.sender, "This account is not the buyer");
+        require(cards[_linkHash].trialsRemaining == 0, "User can still withdraw ETH via gas station");
+
+        (cards[_linkHash].sellAmountWei, cards[_linkHash].rates.sellConversionRate) = _swapDaiToEther(cards[_linkHash].amountDAI, msg.sender);
+
+        cards[_linkHash].recipientAddress = msg.sender;
+
         return true;
     }
 
