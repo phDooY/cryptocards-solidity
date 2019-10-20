@@ -8,14 +8,17 @@
 1. Install `truffle` globally with `npm install -g truffle`.
 2. Run `git clone https://github.com/phDooY/cryptocards-solidity && cd cryptocards-solidity`
 3. Run `npm install` to install dependencies.
-4. Run `truffle console --network ropsten`.
-5. Inside the console, run `compile` to compile the contracts.
-6. Run `migrate` to deploy the contracts to the Ropsten network.
+4. Configure your mnemonic and endpoint used for deployment in `./env.js`
+
+   You may acquire an endpoint URL from [Infura](https://infura.io)
+5. Run `truffle console --network ropsten`.
+6. Inside the console, run `compile` to compile the contracts.
+7. Run `migrate` to deploy the contracts to the Ropsten network.
 
    You can get free test Ether in order to deploy the contracts from [Ropsten Ethereum Faucet](https://faucet.ropsten.be/).
 
    Note: It is highly recommended to use `migrate --reset` instead of just `migrate` after making changes to the contracts.
-7. Use the cheatsheet below to interact with the contracts.
+8. Use the cheatsheet below to interact with the contracts.
 
 # Truffle console cheatsheet
 
