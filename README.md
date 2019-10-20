@@ -1,16 +1,16 @@
 # Development
 
-1. Install `truffle`.
+1. Install `truffle` globally with `npm install -g truffle`.
 2. Run `git clone https://github.com/phDooY/cryptocards-solidity && cd cryptocards-solidity`
-3. Run `truffle develop`.
+3. Run `npm install` to install dependencies.
+4. Run `truffle console --network ropsten`.
+5. Inside the console, run `compile` to compile the contracts.
+6. Run `migrate` to deploy the contracts to the Ropsten network.
 
-   Alternatively, run `ganache-cli` and use `truffle console --network develop` to open the console.
-   The `develop` network is preconfigured to use the default host and port used by Ganache.
-4. Inside the console, run `compile` to compile the contracts.
-5. Run `migrate` to deploy the contracts to the truffle blockchain.
+   You can get free test Ether in order to deploy the contracts from [Ropsten Ethereum Faucet](https://faucet.ropsten.be/).
 
    Note: It is highly recommended to use `migrate --reset` instead of just `migrate` after making changes to the contracts.
-6. Use the cheatsheet below to interact with the contracts.
+7. Use the cheatsheet below to interact with the contracts.
 
 # Truffle console cheatsheet
 

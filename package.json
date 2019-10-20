@@ -1,0 +1,26 @@
+{
+  "name": "cryptocards-solidity",
+  "version": "1.0.0",
+  "description": "Gift Ethereum to Anyone in the World!",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "truffle-hdwallet-provider": "^1.0.17"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "truffle test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phDooY/cryptocards-solidity.git"
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/phDooY/cryptocards-solidity/issues"
+  },
+  "homepage": "https://github.com/phDooY/cryptocards-solidity#readme"
+}
