@@ -1,3 +1,8 @@
+![Design concept](design_concept.png)
+
+# Description
+
+
 # Development
 
 1. Install `truffle` globally with `npm install -g truffle`.
