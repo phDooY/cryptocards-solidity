@@ -21,8 +21,7 @@ interface KyberNetworkProxy {
 contract GiftCards {
     // --- Constants ---
     address constant ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    uint256 public activationGasPrice = 100000;
-    uint8 public trials = 5;
+    uint256 public activationGasCost = 600000 * 1 * 10 ** 9; // Gas * Gas Price (assuming 1 gwei gas price)
 
     // --- Administration ---
     address payable public owner;
@@ -61,12 +60,8 @@ contract GiftCards {
         owner.transfer(profits);
     }
 
-    function setNumberOfTrials(uint8 newValue) public onlyOwner {
-        trials = newValue;
-    }
-
-    function setActivationGasPrice(uint256 newValue) public onlyOwner {
-        activationGasPrice = newValue;
+    function setactivationGasCost(uint256 newValue) public onlyOwner {
+        activationGasCost = newValue;
     }
 
     // TODO fix this
@@ -94,12 +89,11 @@ contract GiftCards {
         uint256 buyAmountWei;
         uint256 sellAmountWei;
         uint256 amountDAI;
-        uint256 nominalAmount; // needed?
+        uint256 nominalAmount;
         Rates rates;
         address buyer;
         string recipientName; // define size
         address recipientAddress; // needed?
-        uint8 trialsRemaining;
         string linkHash; // define size
         string securityCodeHash; // define size
         // CardStatus status;
@@ -125,25 +119,25 @@ contract GiftCards {
 
     function createCard(string memory _linkHash,
                         string memory _recipientName,
-                        string memory _securityCodeHash)
-                        payable
-                        public returns(bool) {
+                        string memory _securityCodeHash,
+                        uint256 _nominalAmount
+                        ) public payable returns(bool) {
 
         require(!cardExists(_linkHash), "The card already exists");
 
         // TODO check gas cost
-        uint256 actualValue = msg.value * 99 / 100 - activationGasPrice * trials;
-        // uint256 actualValue = msg.value - msg.value / 100 - activationGasPrice * trials;
+        uint256 actualValue = msg.value * 99 / 100 - activationGasCost;
+        // uint256 actualValue = msg.value - msg.value / 100 - activationGasCost;
 
         // Call function that swaps Ethereum to DAI
         (cards[_linkHash].amountDAI, cards[_linkHash].rates.buyConversionRate) = _swapEtherToDai(actualValue);
 
+        cards[_linkHash].nominalAmount = _nominalAmount;
         cards[_linkHash].buyAmountWei = actualValue;
         cards[_linkHash].initialAmountWei = msg.value;
         cards[_linkHash].buyer = msg.sender;
         cards[_linkHash].linkHash = _linkHash;
         cards[_linkHash].securityCodeHash = _securityCodeHash;
-        cards[_linkHash].trialsRemaining = trials;
         cards[_linkHash].recipientName = _recipientName;
 
         // TODO define events' data
@@ -154,16 +148,13 @@ contract GiftCards {
 
     // TODO try to estimate and fix the gas cost of calling this function
     // cost should be a global variable
-    function activateCard(string memory _linkHash, string memory _securityCodeHash, address payable _recipientAddress) public returns(bool) {
+    function activateCard(string memory _linkHash, string memory _securityCode, address payable _recipientAddress) public returns(bool) {
         require(cardExists(_linkHash), "This card does not exist");
         require(!cardIsActivated(_linkHash), "This card has already been activated");
 
-        if (isMaintainer[msg.sender]) {
-            require(cards[_linkHash].trialsRemaining != 0, "Out of trials");
-            cards[_linkHash].trialsRemaining--;
-        }
+        bytes32 securityCodeHash = keccak256(abi.encodePacked(_securityCode));
 
-        require(keccak256(abi.encodePacked(_securityCodeHash)) == keccak256(abi.encodePacked(cards[_linkHash].securityCodeHash)), "Security code is invalid");
+        require(keccak256(abi.encodePacked(securityCodeHash)) == keccak256(abi.encodePacked(cards[_linkHash].securityCodeHash)), "Security code is invalid");
 
         (cards[_linkHash].sellAmountWei, cards[_linkHash].rates.sellConversionRate) = _swapDaiToEther(cards[_linkHash].amountDAI, _recipientAddress);
 
@@ -176,7 +167,6 @@ contract GiftCards {
         require(cardExists(_linkHash), "This card does not exist");
         require(!cardIsActivated(_linkHash), "This card has already been activated");
         require(cards[_linkHash].buyer == msg.sender, "This account is not the buyer");
-        require(cards[_linkHash].trialsRemaining == 0, "User can still withdraw ETH via gas station");
 
         (cards[_linkHash].sellAmountWei, cards[_linkHash].rates.sellConversionRate) = _swapDaiToEther(cards[_linkHash].amountDAI, msg.sender);
 
