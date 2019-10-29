@@ -40,7 +40,7 @@ contract GiftCards {
         daiToken = DaiToken(_daiAddress);
     }
 
-    // --- Modifyers ---
+    // --- Modifiers ---
     modifier onlyOwner() {
         require(msg.sender == owner);
         _;
@@ -72,7 +72,7 @@ contract GiftCards {
 
     // --- Events ---
     // TODO
-    event CardCreation(string linkHash);
+    event CardCreation(bytes32 linkHash);
 
     // --- Structs ---
     // TODO available time to activateCard
@@ -94,15 +94,15 @@ contract GiftCards {
         address buyer;
         string recipientName; // define size
         address recipientAddress; // needed?
-        string linkHash; // define size
-        string securityCodeHash; // define size
+        bytes32 linkHash; // define size
+        bytes32 securityCodeHash; // define size
         // CardStatus status;
     }
 
     // TODO anaylse performance with a lot of cards?
-    mapping(string => Card) public cards;
+    mapping(bytes32 => Card) public cards;
 
-    function cardExists(string memory _linkHash) public view returns(bool) {
+    function cardExists(bytes32 _linkHash) public view returns(bool) {
         // if (cards[_linkHash].status != CardStatus.CREATED) {
         if (cards[_linkHash].buyer == address(0)) {
             return false;
@@ -110,16 +110,16 @@ contract GiftCards {
         return true;
     }
 
-    function cardIsActivated(string memory _linkHash) public view returns(bool) {
+    function cardIsActivated(bytes32 _linkHash) public view returns(bool) {
         if (cards[_linkHash].recipientAddress == address(0)) {
             return false;
         }
         return true;
     }
 
-    function createCard(string memory _linkHash,
+    function createCard(bytes32 _linkHash,
                         string memory _recipientName,
-                        string memory _securityCodeHash,
+                        bytes32 _securityCodeHash,
                         uint256 _nominalAmount
                         ) public payable returns(bool) {
 
@@ -140,7 +140,8 @@ contract GiftCards {
         cards[_linkHash].securityCodeHash = _securityCodeHash;
         cards[_linkHash].recipientName = _recipientName;
 
-        // TODO define events' data
+        // TODO define events' data. Maybe buyer?
+        // In general not necessary as we can access any card data using its linkHash
         emit CardCreation(_linkHash);
 
         return true;
@@ -148,13 +149,11 @@ contract GiftCards {
 
     // TODO try to estimate and fix the gas cost of calling this function
     // cost should be a global variable
-    function activateCard(string memory _linkHash, string memory _securityCode, address payable _recipientAddress) public returns(bool) {
+    function activateCard(bytes32 _linkHash, string memory _securityCode, address payable _recipientAddress) public returns(bool) {
         require(cardExists(_linkHash), "This card does not exist");
         require(!cardIsActivated(_linkHash), "This card has already been activated");
 
-        bytes32 securityCodeHash = keccak256(abi.encodePacked(_securityCode));
-
-        require(keccak256(abi.encodePacked(securityCodeHash)) == keccak256(abi.encodePacked(cards[_linkHash].securityCodeHash)), "Security code is invalid");
+        require(keccak256(abi.encodePacked(_securityCode)) == cards[_linkHash].securityCodeHash, "Security code is invalid");
 
         (cards[_linkHash].sellAmountWei, cards[_linkHash].rates.sellConversionRate) = _swapDaiToEther(cards[_linkHash].amountDAI, _recipientAddress);
 
@@ -163,7 +162,7 @@ contract GiftCards {
         return true;
     }
 
-    function returnToBuyer(string memory _linkHash) public returns (bool) {
+    function returnToBuyer(bytes32 _linkHash) public returns (bool) {
         require(cardExists(_linkHash), "This card does not exist");
         require(!cardIsActivated(_linkHash), "This card has already been activated");
         require(cards[_linkHash].buyer == msg.sender, "This account is not the buyer");
