@@ -94,8 +94,7 @@ contract GiftCards {
         address buyer;
         string recipientName; // define size
         address recipientAddress; // needed?
-        bytes32 linkHash; // define size
-        bytes32 securityCodeHash; // define size
+        bytes32 securityCodeHash;
         // CardStatus status;
     }
 
@@ -136,7 +135,6 @@ contract GiftCards {
         cards[_linkHash].buyAmountWei = actualValue;
         cards[_linkHash].initialAmountWei = msg.value;
         cards[_linkHash].buyer = msg.sender;
-        cards[_linkHash].linkHash = _linkHash;
         cards[_linkHash].securityCodeHash = _securityCodeHash;
         cards[_linkHash].recipientName = _recipientName;
 
