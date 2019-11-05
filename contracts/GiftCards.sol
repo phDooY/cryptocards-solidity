@@ -93,8 +93,9 @@ contract GiftCards {
         Rates rates;
         address buyer;
         string recipientName; // define size
-        address recipientAddress; // needed?
+        address recipientAddress;
         bytes32 securityCodeHash;
+        uint8 cardStyle;
         // CardStatus status;
     }
 
@@ -119,7 +120,8 @@ contract GiftCards {
     function createCard(bytes32 _linkHash,
                         string memory _recipientName,
                         bytes32 _securityCodeHash,
-                        uint256 _nominalAmount
+                        uint256 _nominalAmount,
+                        uint8 _cardStyle
                         ) public payable returns(bool) {
 
         require(!cardExists(_linkHash), "The card already exists");
@@ -137,6 +139,7 @@ contract GiftCards {
         cards[_linkHash].buyer = msg.sender;
         cards[_linkHash].securityCodeHash = _securityCodeHash;
         cards[_linkHash].recipientName = _recipientName;
+        cards[_linkHash].cardStyle = _cardStyle;
 
         // TODO define events' data. Maybe buyer?
         // In general not necessary as we can access any card data using its linkHash
