@@ -21,8 +21,6 @@ contract GiftCards {
 
     // --- Administration ---
     address payable public owner;
-    address public daiAddress;
-    address public kyberAddress;
     uint256 private _gasStationBalance;
 
     // --- Proxies ---
@@ -32,9 +30,7 @@ contract GiftCards {
     // --- Contract constructor ---
     constructor(address payable _owner, address _daiAddress, address _kyberNetworkProxyAddress) public {
         owner = _owner;
-        kyberAddress = _kyberNetworkProxyAddress;
         kyberNetworkProxyContract = KyberNetworkProxy(_kyberNetworkProxyAddress);
-        daiAddress = _daiAddress;
         daiToken = DaiToken(_daiAddress);
     }
 
@@ -55,12 +51,10 @@ contract GiftCards {
     }
 
     function setDAIContract(address newAddress) public onlyOwner {
-        daiAddress = newAddress;
         daiToken = DaiToken(newAddress);
     }
 
     function setKyberContract(address newAddress) public onlyOwner {
-        kyberAddress = newAddress;
         kyberNetworkProxyContract = KyberNetworkProxy(newAddress);
     }
 
