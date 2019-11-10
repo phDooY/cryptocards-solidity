@@ -71,8 +71,8 @@ contract GiftCards {
     }
 
     // --- Events ---
-    // TODO
-    event CardCreation(bytes32 linkHash);
+    event CardCreation(bytes32 linkHash, uint256 nominalAmount, address buyer);
+    event CardActivation(bytes32 linkHash, address recipient);
 
     // --- Structs ---
     // TODO available time to activateCard
@@ -141,9 +141,7 @@ contract GiftCards {
         cards[_linkHash].recipientName = _recipientName;
         cards[_linkHash].cardStyle = _cardStyle;
 
-        // TODO define events' data. Maybe buyer?
-        // In general not necessary as we can access any card data using its linkHash
-        emit CardCreation(_linkHash);
+        emit CardCreation(_linkHash, _nominalAmount, msg.sender);
 
         return true;
     }
@@ -159,6 +157,8 @@ contract GiftCards {
         (cards[_linkHash].sellAmountWei, cards[_linkHash].rates.sellConversionRate) = _swapDaiToEther(cards[_linkHash].amountDAI, _recipientAddress);
 
         cards[_linkHash].recipientAddress = _recipientAddress;
+
+        emit CardActivation(_linkHash, _recipientAddress);
 
         return true;
     }
