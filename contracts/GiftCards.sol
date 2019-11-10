@@ -1,9 +1,5 @@
 pragma solidity >0.5.6;
-// TODO change from public mapping to getter
 pragma experimental ABIEncoderV2;
-
-// import "./IERC20.sol";
-// import "./KyberNetworkProxy.sol";
 
 interface DaiToken {
     function transfer(address dst, uint wad) external returns (bool);
@@ -21,12 +17,12 @@ interface KyberNetworkProxy {
 contract GiftCards {
     // --- Constants ---
     address constant ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    uint256 public activationGasCost = 600000 * 1 * 10 ** 9; // Gas * Gas Price (assuming 1 gwei gas price)
+    uint256 public activationGasCost = 600000 * 2 * 10 ** 9; // Gas * Gas Price (assuming 3 gwei gas price)
 
     // --- Administration ---
     address payable public owner;
     address public daiAddress;
-    mapping(address => bool) isMaintainer;
+    address public kyberAddress;
     uint256 private _gasStationBalance;
 
     // --- Proxies ---
@@ -36,25 +32,19 @@ contract GiftCards {
     // --- Contract constructor ---
     constructor(address payable _owner, address _daiAddress, address _kyberNetworkProxyAddress) public {
         owner = _owner;
+        kyberAddress = _kyberNetworkProxyAddress;
         kyberNetworkProxyContract = KyberNetworkProxy(_kyberNetworkProxyAddress);
+        daiAddress = _daiAddress;
         daiToken = DaiToken(_daiAddress);
     }
 
     // --- Modifiers ---
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        require(msg.sender == owner, 'Not the owner of contract!');
         _;
     }
 
     // --- Helper functions ---
-    function addMaintainer(address _address) public onlyOwner {
-        isMaintainer[_address] = true;
-    }
-
-    function removeMaintainer(address _address) public onlyOwner {
-        isMaintainer[_address] = false;
-    }
-
     function withdrawProfits() public onlyOwner {
         uint256 profits = address(this).balance - _gasStationBalance;
         owner.transfer(profits);
@@ -64,10 +54,14 @@ contract GiftCards {
         activationGasCost = newValue;
     }
 
-    // TODO fix this
     function setDAIContract(address newAddress) public onlyOwner {
         daiAddress = newAddress;
-        // TODO initialize token from address
+        daiToken = DaiToken(newAddress);
+    }
+
+    function setKyberContract(address newAddress) public onlyOwner {
+        kyberAddress = newAddress;
+        kyberNetworkProxyContract = KyberNetworkProxy(newAddress);
     }
 
     // --- Events ---
@@ -75,10 +69,6 @@ contract GiftCards {
     event CardActivation(bytes32 linkHash, address recipient);
 
     // --- Structs ---
-    // TODO available time to activateCard
-    // TODO do we need enum?
-    // enum CardStatus { NULL, CREATED, ACTIVATED, REVERTED, RETURNED }
-    // TODO think how to split variables into structs
     struct Rates {
         uint256 buyConversionRate;
         uint256 sellConversionRate;
@@ -92,18 +82,16 @@ contract GiftCards {
         uint256 nominalAmount;
         Rates rates;
         address buyer;
-        string recipientName; // define size
+        string recipientName;
         address recipientAddress;
         bytes32 securityCodeHash;
         uint8 cardStyle;
-        // CardStatus status;
     }
 
     // TODO anaylse performance with a lot of cards?
     mapping(bytes32 => Card) public cards;
 
     function cardExists(bytes32 _linkHash) public view returns(bool) {
-        // if (cards[_linkHash].status != CardStatus.CREATED) {
         if (cards[_linkHash].buyer == address(0)) {
             return false;
         }
@@ -126,9 +114,7 @@ contract GiftCards {
 
         require(!cardExists(_linkHash), "The card already exists");
 
-        // TODO check gas cost
         uint256 actualValue = msg.value * 99 / 100 - activationGasCost;
-        // uint256 actualValue = msg.value - msg.value / 100 - activationGasCost;
 
         // Call function that swaps Ethereum to DAI
         (cards[_linkHash].amountDAI, cards[_linkHash].rates.buyConversionRate) = _swapEtherToDai(actualValue);
@@ -146,8 +132,6 @@ contract GiftCards {
         return true;
     }
 
-    // TODO try to estimate and fix the gas cost of calling this function
-    // cost should be a global variable
     function activateCard(bytes32 _linkHash, string memory _securityCode, address payable _recipientAddress) public returns(bool) {
         require(cardExists(_linkHash), "This card does not exist");
         require(!cardIsActivated(_linkHash), "This card has already been activated");
