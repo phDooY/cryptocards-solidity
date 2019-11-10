@@ -17,7 +17,7 @@ interface KyberNetworkProxy {
 contract GiftCards {
     // --- Constants ---
     address constant ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    uint256 public activationGasCost = 600000 * 2 * 10 ** 9; // Gas * Gas Price (assuming 3 gwei gas price)
+    uint256 public activationGasCost = 600000 * 2 * 10 ** 9; // Gas * Gas Price (assuming 2 gwei gas price)
 
     // --- Administration ---
     address payable public owner;
