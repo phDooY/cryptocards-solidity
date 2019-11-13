@@ -21,7 +21,7 @@ contract GiftCards {
 
     // --- Administration ---
     address payable public owner;
-    uint256 private _gasStationBalance;
+    uint256 public gasStationBalance;
 
     // --- Proxies ---
     KyberNetworkProxy public kyberNetworkProxyContract;
@@ -36,14 +36,19 @@ contract GiftCards {
 
     // --- Modifiers ---
     modifier onlyOwner() {
-        require(msg.sender == owner, 'Not the owner of contract!');
+        require(msg.sender == owner, 'Not the owner of the contract!');
         _;
     }
 
     // --- Helper functions ---
     function withdrawProfits() public onlyOwner {
-        uint256 profits = address(this).balance - _gasStationBalance;
+        uint256 profits = address(this).balance - gasStationBalance;
         owner.transfer(profits);
+    }
+
+    function refillGasStation(address payable maintainer) public onlyOwner {
+        maintainer.transfer(gasStationBalance);
+        gasStationBalance = 0;
     }
 
     function setactivationGasCost(uint256 newValue) public onlyOwner {
@@ -109,6 +114,7 @@ contract GiftCards {
         require(!cardExists(_linkHash), "The card already exists");
 
         uint256 actualValue = msg.value * 99 / 100 - activationGasCost;
+        gasStationBalance += activationGasCost;
 
         // Call function that swaps Ethereum to DAI
         (cards[_linkHash].amountDAI, cards[_linkHash].rates.buyConversionRate) = _swapEtherToDai(actualValue);
