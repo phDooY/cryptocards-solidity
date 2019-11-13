@@ -195,12 +195,10 @@ contract GiftCards {
 
         // Send received ethers to destination address
         require(destAddress.send(destAmount), "ETH transfer failed");
-
-        // destAddress.transfer(destAmount);
         return(destAmount, minRate);
     }
 
-    function() payable external {
+    function() external payable  {
     }
 
 }
