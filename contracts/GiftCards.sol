@@ -51,7 +51,7 @@ contract GiftCards {
         gasStationBalance = 0;
     }
 
-    function setactivationGasCost(uint256 newValue) public onlyOwner {
+    function setActivationGasCost(uint256 newValue) public onlyOwner {
         activationGasCost = newValue;
     }
 
