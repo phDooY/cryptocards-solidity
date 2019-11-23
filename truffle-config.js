@@ -1,8 +1,10 @@
 const path = require("path");
 var HDWalletProvider = require("truffle-hdwallet-provider");
+require('dotenv').config()
 
-// `mnemonic` and `endpoint` are defined in env.js
-const env = require("./env.js")
+// `MNEMONIC` and `ENDPOINT` are defined in environment variables
+const mnemonic = process.env.MNEMONIC
+const endpoint = process.env.ENDPOINT
 
 module.exports = {
   // See <http://truffleframework.com/docs/advanced/configuration>
@@ -17,7 +19,7 @@ module.exports = {
     },
     ropsten: {
         provider: function() {
-            return new HDWalletProvider(env.mnemonic, env.endpoint)
+            return new HDWalletProvider(mnemonic, endpoint)
         },
         network_id: 3
     }

@@ -1,3 +1,5 @@
+[![buddy pipeline](https://app.buddy.works/david9105/cryptocards-solidity/pipelines/pipeline/224988/badge.svg?token=dd71aea6faef164236a584a702dc72703a71c49502f20c205bc477343ecea3b9 "buddy pipeline")](https://app.buddy.works/david9105/cryptocards-solidity/pipelines/pipeline/224988)
+
 ![Design concept](design_concept.png)
 
 # Description
@@ -8,7 +10,7 @@
 1. Install `truffle` globally with `npm install -g truffle`.
 2. Run `git clone https://github.com/phDooY/cryptocards-solidity && cd cryptocards-solidity`
 3. Run `npm install` to install dependencies.
-4. Configure your mnemonic and endpoint used for deployment in `./env.js`
+4. Configure your `MNEMONIC` and `ENDPOINT` used for deployment in `.env` or sourced in environment variables.
 
    You may acquire an endpoint URL from [Infura](https://infura.io)
 5. Run `truffle console --network ropsten`.
