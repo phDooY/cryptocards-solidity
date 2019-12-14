@@ -18,6 +18,7 @@ contract GiftCards {
     // --- Constants ---
     address constant ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     uint256 public activationGasCost = 600000 * 2 * 10 ** 9; // Gas * Gas Price (assuming 2 gwei gas price)
+    uint256 public feeAmountPercent = 1;
 
     // --- Administration ---
     address payable public owner;
@@ -55,6 +56,10 @@ contract GiftCards {
         activationGasCost = newValue;
     }
 
+    function setFeeAmountPercent(uint256 newValue) public onlyOwner {
+        feeAmountPercent = newValue;
+    }
+
     function setDAIContract(address newAddress) public onlyOwner {
         daiToken = DaiToken(newAddress);
     }
@@ -87,7 +92,6 @@ contract GiftCards {
         uint8 cardStyle;
     }
 
-    // TODO anaylse performance with a lot of cards?
     mapping(bytes32 => Card) public cards;
 
     function cardExists(bytes32 _linkHash) public view returns(bool) {
@@ -113,7 +117,7 @@ contract GiftCards {
 
         require(!cardExists(_linkHash), "The card already exists");
 
-        uint256 actualValue = msg.value * 99 / 100 - activationGasCost;
+        uint256 actualValue = msg.value * (100 - feeAmountPercent) / 100 - activationGasCost;
         gasStationBalance += activationGasCost;
 
         // Call function that swaps Ethereum to DAI

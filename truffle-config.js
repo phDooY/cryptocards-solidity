@@ -18,10 +18,16 @@ module.exports = {
       network_id: "*" // match any network id
     },
     ropsten: {
-        provider: function() {
-            return new HDWalletProvider(mnemonic, endpoint)
-        },
-        network_id: 3
+      provider: function() {
+          return new HDWalletProvider(mnemonic, endpoint)
+      },
+      network_id: 3
+    },
+    mainnet: {
+      provider: function() {
+          return new HDWalletProvider(mnemonic, endpoint)
+      },
+      network_id: 1
     }
   }
 };
