@@ -17,11 +17,12 @@ interface KyberNetworkProxy {
 contract GiftCards {
     // --- Constants ---
     address constant ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    uint256 public activationGasCost = 600000 * 2 * 10 ** 9; // Gas * Gas Price (assuming 2 gwei gas price)
+    uint256 public activationGasCost = 800000 * 6 * 10 ** 9; // Gas * Gas Price (assuming 6 gwei gas price)
     uint256 public feeAmountPercent = 1;
 
     // --- Administration ---
     address payable public owner;
+    address public maintainer;
     uint256 public gasStationBalance;
 
     // --- Proxies ---
@@ -29,8 +30,9 @@ contract GiftCards {
     DaiToken public daiToken;
 
     // --- Contract constructor ---
-    constructor(address payable _owner, address _daiAddress, address _kyberNetworkProxyAddress) public {
+    constructor(address payable _owner, address _maintainer, address _daiAddress, address _kyberNetworkProxyAddress) public {
         owner = _owner;
+        maintainer = _maintainer;
         kyberNetworkProxyContract = KyberNetworkProxy(_kyberNetworkProxyAddress);
         daiToken = DaiToken(_daiAddress);
     }
@@ -38,6 +40,11 @@ contract GiftCards {
     // --- Modifiers ---
     modifier onlyOwner() {
         require(msg.sender == owner, 'Not the owner of the contract!');
+        _;
+    }
+
+    modifier onlyMaintainer() {
+        require(msg.sender == maintainer, 'Not the maintainer of the contract!');
         _;
     }
 
@@ -50,6 +57,10 @@ contract GiftCards {
     function refillGasStation(address payable maintainer) public onlyOwner {
         maintainer.transfer(gasStationBalance);
         gasStationBalance = 0;
+    }
+
+    function setMaintainer(address newAddress) public onlyOwner {
+        maintainer = newAddress;
     }
 
     function setActivationGasCost(uint256 newValue) public onlyOwner {
@@ -136,7 +147,7 @@ contract GiftCards {
         return true;
     }
 
-    function activateCard(bytes32 _linkHash, string memory _securityCode, address payable _recipientAddress) public returns(bool) {
+    function activateCard(bytes32 _linkHash, string memory _securityCode, address payable _recipientAddress) public onlyMaintainer returns(bool) {
         require(cardExists(_linkHash), "This card does not exist");
         require(!cardIsActivated(_linkHash), "This card has already been activated");
 
