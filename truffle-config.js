@@ -27,6 +27,7 @@ module.exports = {
       provider: function() {
           return new HDWalletProvider(mnemonic, endpoint)
       },
+      gas: 6000000,
       network_id: 1
     }
   }
