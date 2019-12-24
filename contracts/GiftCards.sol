@@ -1,4 +1,4 @@
-pragma solidity >0.5.6;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 interface DaiToken {
@@ -96,7 +96,7 @@ contract GiftCards {
         uint256 amountDAI;
         uint256 nominalAmount;
         Rates rates;
-        address buyer;
+        address payable buyer;
         string recipientName;
         address recipientAddress;
         bytes32 securityCodeHash;
@@ -165,11 +165,11 @@ contract GiftCards {
     function returnToBuyer(bytes32 _linkHash) public returns (bool) {
         require(cardExists(_linkHash), "This card does not exist");
         require(!cardIsActivated(_linkHash), "This card has already been activated");
-        require(cards[_linkHash].buyer == msg.sender, "This account is not the buyer");
+        require(cards[_linkHash].buyer == msg.sender || maintainer == msg.sender, "This account is neiher buyer, nor maintainer");
 
-        (cards[_linkHash].sellAmountWei, cards[_linkHash].rates.sellConversionRate) = _swapDaiToEther(cards[_linkHash].amountDAI, msg.sender);
+        (cards[_linkHash].sellAmountWei, cards[_linkHash].rates.sellConversionRate) = _swapDaiToEther(cards[_linkHash].amountDAI, cards[_linkHash].buyer);
 
-        cards[_linkHash].recipientAddress = msg.sender;
+        cards[_linkHash].recipientAddress = cards[_linkHash].buyer;
 
         return true;
     }
@@ -213,7 +213,6 @@ contract GiftCards {
         return(destAmount, minRate);
     }
 
-    function() external payable  {
-    }
+    receive() external payable {}
 
 }
