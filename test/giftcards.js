@@ -1,5 +1,8 @@
 const GiftCards = artifacts.require("./GiftCards.sol");
 
+// Truffle helper library for testing contracts
+const truffleAssert = require('truffle-assertions');
+
 // Helpers
 const keccak256 = (...inputs) => web3.utils.soliditySha3(...inputs)
 const generateSecurityCode = () => web3.utils.randomHex(20)
@@ -9,6 +12,7 @@ contract("GiftCards", async accounts => {
 
   // Constants (taken from deployment script)
   const addressOwner = accounts[0];
+  const addressMaintainer = accounts[0];
   // Ropsten addresses
   const addressDAI = "0xad6d458402f60fd3bd25163575031acdce07538d";
   const kyberNetworkProxyAddress = "0x818E6FECD516Ecc3849DAf6845e3EC868087B755";
@@ -20,6 +24,7 @@ contract("GiftCards", async accounts => {
   before('Setup new contract instance', async () => {
     giftCardsInstance = await GiftCards.new(
       addressOwner,
+      addressMaintainer,
       addressDAI,
       kyberNetworkProxyAddress
     );
@@ -32,18 +37,15 @@ contract("GiftCards", async accounts => {
     // ----------
   });
 
-
   it("Should return that the card does not exist.", async () => {
-
     // Check if it exists
     let result = await giftCardsInstance.cardExists(linkHash);
 
-    assert.equal(result, false, "The card somehow exists");
+    assert.equal(result, false, "The card somehow exists on a clean contract");
   });
 
 
   it("Should create a new card without error.", async () => {
-
     // Create card
     let securityCodeHash = hashSecurityCode(securityCode) 
     let recipientName = 'Test Recipient'
@@ -79,7 +81,6 @@ contract("GiftCards", async accounts => {
 
 
   it("Should activate the previous card without error.", async () => {
-
     let recipientAddress = accounts[0]
     // Get balance before activating
     // Assume that it will not change during this test
@@ -115,5 +116,49 @@ contract("GiftCards", async accounts => {
     let result = await giftCardsInstance.cardIsActivated(linkHash);
     assert.equal(result, true, "The card we just activated appears not activated.");
   });
+
+  it("Should fail to activate the same card twice.", async () => {
+    // Attempt to activate the same card
+    await truffleAssert.reverts(
+      giftCardsInstance.activateCard(
+        linkHash,
+        securityCode,
+        accounts[0]),
+      null,
+      "This card was activated twice"
+    );
+  });
+
+
+  // Since we cannot guarantee having multiple accounts available, we use a
+  // dummy account and instead of signing and sending the transaction, we use
+  // call to determine if it WOULD fail.
+  it("Should fail to run an onlyOwner function from an non owner address.", async () => {
+    // Random non owner account
+    // let notOwner = accounts[1];
+    let notOwner = "0x1111111111111111111111111111111111111111"
+
+    truffleAssert.reverts(
+      await giftCardsInstance.setMaintainer.call(notOwner, { from: notOwner }),
+      null,
+      "This function was successfully called by a NON owner address"
+    );
+
+  });
+
+  it("Should fail to run an onlyMaintainer function from an non maintainer address.", async () => {
+    // Random non maintainer account
+    // let notMaintainer = accounts[1];
+    let notMaintainer = "0x1111111111111111111111111111111111111111"
+
+    truffleAssert.reverts(
+      await giftCardsInstance.setMaintainer.call(notMaintainer, { from: notMaintainer }),
+      null,
+      "This function was successfully called by a NON maintainer address"
+    );
+
+  });
+
+
 
 });
