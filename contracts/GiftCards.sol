@@ -1,4 +1,4 @@
-pragma solidity ^0.6.0;
+pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
 interface DaiToken {
@@ -213,6 +213,6 @@ contract GiftCards {
         return(destAmount, minRate);
     }
 
-    receive() external payable {}
+    function() external payable {}
 
 }

@@ -12,7 +12,12 @@ const ADDRESSES = {
   3: {
     addressDAI: "0xad6d458402f60fd3bd25163575031acdce07538d",
     addressKyberNetworkProxy: "0x818E6FECD516Ecc3849DAf6845e3EC868087B755"
-  }
+  },
+  // >>> Ganache
+  5777: {
+    addressDAI: "0xad6d458402f60fd3bd25163575031acdce07538d",
+    addressKyberNetworkProxy: "0x818E6FECD516Ecc3849DAf6845e3EC868087B755"
+  },
 }
 
 module.exports = function(deployer, network, accounts) {
