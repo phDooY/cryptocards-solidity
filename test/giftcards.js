@@ -37,6 +37,40 @@ contract("GiftCards", async accounts => {
     // ----------
   });
 
+
+  // Since we cannot guarantee having multiple accounts available, we use a
+  // dummy account and instead of signing and sending the transaction, we use
+  // call to determine if it WOULD fail.
+  it("Should fail to run an onlyOwner function from a non owner address.", async () => {
+    let notOwner = accounts[1];
+    console.log('NOT OWNER ADDRESS: ' + notOwner);
+
+    await truffleAssert.reverts(
+      giftCardsInstance.setMaintainer(notOwner, {from: notOwner}),
+      'Not the owner of the contract!',
+      "This function was successfully called by a NON owner address"
+    );
+
+  });
+
+
+  it("Should fail to run an onlyMaintainer function from an non maintainer address.", async () => {
+    // Random non maintainer account
+    // let notMaintainer = accounts[1];
+    // let notMaintainer = "0x1111111111111111111111111111111111111111"
+    const privateKey = 'C436D5BC77FFEC6BC32F0B7A263DAD728872119A4C17E0D10F9115F196A084B5';
+    let notMaintainer = web3.eth.accounts.privateKeyToAccount('0x' + privateKey);
+    web3.eth.accounts.wallet.add(notMaintainer);
+    notMaintainer = notMaintainer.address
+
+    await truffleAssert.reverts(
+      giftCardsInstance.setMaintainer(notMaintainer, { from: notMaintainer }),
+      null,
+      "This function was successfully called by a NON maintainer address"
+    );
+
+  });
+
   it("Should return that the card does not exist.", async () => {
     // Check if it exists
     let result = await giftCardsInstance.cardExists(linkHash);
@@ -128,37 +162,5 @@ contract("GiftCards", async accounts => {
       "This card was activated twice"
     );
   });
-
-
-  // Since we cannot guarantee having multiple accounts available, we use a
-  // dummy account and instead of signing and sending the transaction, we use
-  // call to determine if it WOULD fail.
-  it("Should fail to run an onlyOwner function from an non owner address.", async () => {
-    // Random non owner account
-    // let notOwner = accounts[1];
-    let notOwner = "0x1111111111111111111111111111111111111111"
-
-    truffleAssert.reverts(
-      await giftCardsInstance.setMaintainer.call(notOwner, { from: notOwner }),
-      null,
-      "This function was successfully called by a NON owner address"
-    );
-
-  });
-
-  it("Should fail to run an onlyMaintainer function from an non maintainer address.", async () => {
-    // Random non maintainer account
-    // let notMaintainer = accounts[1];
-    let notMaintainer = "0x1111111111111111111111111111111111111111"
-
-    truffleAssert.reverts(
-      await giftCardsInstance.setMaintainer.call(notMaintainer, { from: notMaintainer }),
-      null,
-      "This function was successfully called by a NON maintainer address"
-    );
-
-  });
-
-
 
 });

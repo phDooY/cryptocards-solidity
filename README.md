@@ -39,9 +39,9 @@ await c.addMaintainer(a[0])
 // Call payable function from account 3. Value is in wei.
 await c.createCard("some hash", "eleni", "security code hash", {from: a[0], value: 200000000000000000})
 // Get card data
-d = await c.cards("some hash")
+d = await c.cards(web3.utils.sha3("some hash"))
 // Activate card
-await c.activateCard("some hash", "security code hash", '0x90F63E26982DF91Af836FA3339791a2b2A3452F8')
+await c.activateCard.call(web3.utils.sha3("some hash"), "security code hash", '0x0220A73D5113ED7a85A6B610056573b3FD4968Be')
 ```
 
 
